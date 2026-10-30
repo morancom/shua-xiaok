@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>idle hung solve test</title>
+<style>body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:24px}.TiMu{border:1px solid #ddd;padding:14px;margin:12px 0}.optionItem{display:block;margin:6px 0}</style></head>
+<body>
+<div class="TiMu">
+  <div class="questionTxt">1. 这题故意让 SOLVE 永不返回，模拟真实页面卡住</div>
+  <div class="Zy_ulBottom">
+    <label class="optionItem"><input type="radio" name="q1"> A. 选项一</label>
+    <label class="optionItem"><input type="radio" name="q1"> B. 选项二</label>
+  </div>
+</div>
+<button id="prevNextFocusNext" style="width:160px;height:40px" onclick="window.__nextClicks=(window.__nextClicks||0)+1">下一节</button>
+<div id="out">WAITING</div>
+<script>
+  window.__nextClicks = 0;
+  window.__logs = [];
+  window.chrome = {
+    runtime: {
+      sendMessage: function (msg, cb) {
+        if (msg && msg.type === 'GET_SETTINGS') {
+          var ret = { ok: true, settings: { autoAnswer: true, autoSubmit: false, autoVideo: false, autoJump: true, playbackRate: 1 } };
+          if (cb) { setTimeout(function () { cb(ret); }, 0); return; }
+          return Promise.resolve(ret);
+        }
+        if (msg && msg.type === 'BRUSH_REPORT') { window.__logs.push(msg); return; }
+        if (msg && msg.type === 'SOLVE') { return new Promise(function () {}); }
+        if (cb) setTimeout(function () { cb({ ok: true }); }, 0);
+        return Promise.resolve({ ok: true });
+      }
+    }
+  };
+</script>
+<script src="/extension/engine.js"></script>
+<script>
+  (async function () {
+    var out = document.getElementById('out');
+    try {
+      var S = window.__SXK;
+      await S.loadSettings();
+      S.watchAutoAnswer('chaoxing');
+      S.watchQuizIdle('chaoxing');
+      out.textContent = 'WATCHING';
+      setTimeout(function () {
+        var ok = window.__nextClicks > 0;
+        out.textContent = (ok ? 'PASS ' : 'FAIL ') + JSON.stringify({ nextClicks: window.__nextClicks, logs: window.__logs.map(function (x) { return x.task + ':' + x.status; }) });
+        document.title = ok ? 'PASS' : 'FAIL';
+      }, 19000);
+    } catch (e) { out.textContent = 'FAIL ' + e.message; }
+  })();
+</script>
+</body></html>

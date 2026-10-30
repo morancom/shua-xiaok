@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>idle fallback test</title>
+<style>body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:24px}.TiMu{border:1px solid #ddd;padding:14px;margin:12px 0}.optionItem{display:block;margin:6px 0}.fillInput{padding:6px}</style></head>
+<body>
+<div class="TiMu">
+  <div class="questionTxt">1. 这是已答选择题</div>
+  <div class="Zy_ulBottom">
+    <label class="optionItem"><input type="radio" name="q1" checked> A. 已选</label>
+    <label class="optionItem"><input type="radio" name="q1"> B. 未选</label>
+  </div>
+</div>
+<div class="TiMu">
+  <div class="questionTxt">2. 这是空着的填空题(允许空题)</div>
+  <input type="text" class="fillInput" value="">
+</div>
+<button id="prevNextFocusNext" style="width:160px;height:40px" onclick="window.__nextClicks=(window.__nextClicks||0)+1">下一节</button>
+<div id="out">WAITING</div>
+<script>
+  window.__submitMsg = null;
+  window.__logs = [];
+  window.__nextClicks = 0;
+  window.chrome = {
+    runtime: {
+      sendMessage: function (msg, cb) {
+        if (msg && msg.type === 'GET_SETTINGS') {
+          var ret = { ok: true, settings: { autoAnswer: true, autoSubmit: true, autoVideo: false, autoJump: true, playbackRate: 1 } };
+          if (cb) { setTimeout(function () { cb(ret); }, 0); return; }
+          return Promise.resolve(ret);
+        }
+        if (msg && msg.type === 'BRUSH_REPORT') { window.__logs.push(msg); return; }
+        if (msg && msg.type === 'AUTO_SUBMIT_PAGE') {
+          window.__submitMsg = msg;
+          if (cb) { setTimeout(function () { cb({ ok: true, text: '提交' }); }, 0); return; }
+          return Promise.resolve({ ok: true, text: '提交' });
+        }
+        if (cb) setTimeout(function () { cb({ ok: true }); }, 0);
+        return Promise.resolve({ ok: true });
+      }
+    }
+  };
+</script>
+<script src="/extension/engine.js"></script>
+<script>
+  (async function () {
+    var out = document.getElementById('out');
+    try {
+      var S = window.__SXK;
+      if (!S) { out.textContent = 'FAIL 没有 __SXK'; return; }
+      await S.loadSettings();
+      S.watchQuizIdle('test');
+      out.textContent = 'WATCHING';
+      setTimeout(function () {
+        var ok = !!(window.__submitMsg && window.__submitMsg.type === 'AUTO_SUBMIT_PAGE') && window.__nextClicks > 0;
+        out.textContent = (ok ? 'PASS ' : 'FAIL ') + JSON.stringify({ submitMsg: window.__submitMsg, nextClicks: window.__nextClicks, logs: window.__logs.map(function (x) { return x.task + ':' + x.status; }) });
+        document.title = ok ? 'PASS' : 'FAIL';
+      }, 19000);
+    } catch (e) { out.textContent = 'FAIL ' + e.message; }
+  })();
+</script>
+</body></html>

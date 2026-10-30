@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>frame-submit</title>
+<style>
+  body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:20px;background:#fafbfc}
+  #prevNextFocusNext{padding:8px 26px;border-radius:16px;background:#4a8cff;color:#fff;border:0;cursor:pointer}
+  iframe{width:100%;height:460px;border:1px solid #ddd;border-radius:6px;margin-top:14px;background:#fff}
+  #out{margin-top:12px;font:12px/1.5 Consolas,monospace;white-space:pre-wrap;color:#333}
+</style></head>
+<body>
+<h3>模拟真机:题目和「提交」都在 iframe 里,「下一节」在顶层</h3>
+<p>真机 studentstudy 就是这个结构 —— 顶层内容脚本看不见题目,所以提交只能由 iframe 那一层做,跳节回顶层做。</p>
+<button id="prevNextFocusNext" onclick="window.__nextClicks=(window.__nextClicks||0)+1">下一节</button>
+<iframe id="iframe" src="about:blank"></iframe>
+<div id="out">WAITING</div>
+<script>
+  var MODE = 'answered';
+  try { MODE = new URLSearchParams(location.search).get('mode') || 'answered'; } catch (e) {}
+  window.__nextClicks = 0;
+  // 模拟后台把 SXK_JUMP_NEXT 转给顶层后,顶层真正做的事:点下一节
+  window.__jumpNext = function () {
+    var b = document.getElementById('prevNextFocusNext');
+    if (b) b.click();
+    return true;
+  };
+  document.getElementById('iframe').src = '/tools/mock-frame-submit-if.html?answered=' + (MODE === 'idle' ? '0' : '1');
+</script>
+<script>
+  (function () {
+    var out = document.getElementById('out');
+    var t0 = Date.now();
+    out.textContent = 'WATCHING mode=' + MODE;
+    var iv = setInterval(function () {
+      var f = document.getElementById('iframe');
+      var w = null;
+      try { w = f.contentWindow; } catch (e) {}
+      var submitted = w && w.__submitCount > 0;
+      var done = submitted && window.__nextClicks > 0;
+      var overtime = Date.now() - t0 > (MODE === 'idle' ? 40000 : 24000);
+      if (!done && !overtime) return;
+      clearInterval(iv);
+      var brief = {
+        mode: MODE,
+        submitted: submitted ? w.__submitCount : 0,
+        nextClicks: window.__nextClicks,
+        seconds: Math.round((Date.now() - t0) / 1000),
+        logs: (w && w.__logs ? w.__logs : []).slice(-16),
+      };
+      out.textContent = (done ? 'PASS ' : 'FAIL ') + JSON.stringify(brief, null, 1);
+      document.title = done ? 'PASS' : 'FAIL';
+    }, 500);
+  })();
+</script>
+</body></html>

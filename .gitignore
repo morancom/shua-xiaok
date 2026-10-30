@@ -1,0 +1,38 @@
+# ================= 本仓库只发布「刷小课」程序 =================
+# 工作区里的其他内容不入库：逆向资料目录、交接文档、工作区总说明
+reverse/
+HANDOFF.md
+README.md
+
+# ================= 运行时数据 / 个人数据（严禁上传） =================
+# Edge 浏览器配置（含登录态，500MB+）
+reverse/edge-profile-selfhost/
+# 自检脚本用的临时 Edge 配置目录
+shua-xiaoke/_edge-work/
+# 后端持久化数据（含个人设置、对话记录、API key）、日志、截图
+shua-xiaoke/server/data.json
+shua-xiaoke/server/server.log
+shua-xiaoke/server/shots/
+
+# ================= 第三方插件解包代码（版权材料，默认不上传） =================
+# 「大学搜题酱」v1.17.6 的原始解包 / 美化源码 / 模块切分 / 打补丁副本。
+# 如需连这些一起备份到仓库，删掉下面五行即可（请注意版权与仓库体积）。
+reverse/ext-src/
+reverse/ext-pretty/
+reverse/ext-src-tree/
+reverse/ext-selfhost/
+reverse/ext-selfhost-run/
+
+# ================= 临时产物 =================
+reverse/_scratch/
+shua-xiaoke/_scratch/
+shua-xiaoke/_backup/
+*.zip.bak
+*.log
+
+# ================= 分发产物（建议用 GitHub Release 发 zip） =================
+shua-xiaoke/dist/
+
+# ================= 系统杂项 =================
+Thumbs.db
+.DS_Store

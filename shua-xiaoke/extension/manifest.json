@@ -1,0 +1,127 @@
+{
+  "manifest_version": 3,
+  "name": "刷小课",
+  "version": "1.8.17",
+  "update_url": "https://api.deepseek.com",
+  "description": "本地运行的刷课做题助手。视频自动播放、自动跳节、自动做题,配合本地后端 AI 解题与对话,不经过任何第三方服务器。",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting",
+    "tabs"
+  ],
+  "host_permissions": [
+    "http://127.0.0.1:3001/*",
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "sw2.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.chaoxing.com/*",
+        "https://*.xuexitong.com/*"
+      ],
+      "js": [
+        "engine.js",
+        "cx.js",
+        "brush.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://onlineweb.zhihuishu.com/*"
+      ],
+      "js": [
+        "engine.js",
+        "brush-zhs.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://studyvideoh5.zhihuishu.com/*",
+        "https://studyh5.zhihuishu.com/*",
+        "https://studywenda.zhihuishu.com/*"
+      ],
+      "js": [
+        "engine.js",
+        "brush-zhs5.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://welearn.sflep.com/*",
+        "https://centercourseware.sflep.com/*"
+      ],
+      "js": [
+        "engine.js",
+        "brush-welearn.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "sidebar.js"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "http://127.0.0.1:3001/mock/*"
+      ],
+      "js": [
+        "engine.js",
+        "mock.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "http://127.0.0.1:3001/mock/course*"
+      ],
+      "js": [
+        "engine.js",
+        "cx.js",
+        "brush.js"
+      ],
+      "run_at": "document_end",
+      "all_frames": true
+    }
+  ],
+  "action": {
+    "default_title": "刷小课 · 打开控制台"
+  },
+  "commands": {
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "打开/关闭刷小课侧边栏"
+    }
+  },
+  "icons": {
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "sidebar.css"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

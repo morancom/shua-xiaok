@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh">
+<head><meta charset="utf-8"><title>zhs5 xframe iframe(player)</title>
+<style>body{margin:0;background:#000;color:#888;font:12px sans-serif;padding:8px}video{width:480px;height:150px}</style>
+</head>
+<body>
+<p>跨域 iframe 里的播放器(README: 生产环境里播放器可能在别的域名)</p>
+<video id="v1"></video>
+<div id="out">init</div>
+
+<script>
+  window.__logs = [];
+  function handle(msg) {
+    if (!msg || !msg.type) return { ok: true };
+    if (msg.type === 'GET_SETTINGS') return { ok: true, settings: { autoVideo: true, playbackRate: 2, autoJump: true, autoAnswer: true, autoSubmit: false } };
+    if (msg.type === 'BRUSH_REPORT') { window.__logs.push({ task: msg.task, status: msg.status }); return { ok: true }; }
+    return { ok: true };
+  }
+  window.chrome = {
+    runtime: { sendMessage: (m) => Promise.resolve(handle(m)), onMessage: { addListener() {} } },
+    storage: { local: { get: () => Promise.resolve({}), set: () => Promise.resolve() } },
+  };
+
+  const v = document.getElementById('v1');
+  let cur = 97;
+  let paused = true;
+  Object.defineProperty(v, 'duration', { get: () => 100 });
+  Object.defineProperty(v, 'currentTime', { get: () => cur, set: (x) => { cur = x; } });
+  Object.defineProperty(v, 'ended', { get: () => false });
+  Object.defineProperty(v, 'paused', { get: () => paused });
+  v.play = () => { paused = false; return Promise.resolve(); };
+  v.pause = () => { paused = true; };
+
+  setInterval(() => {
+    if (!paused) cur = Math.min(99.9, cur + 1);
+    document.getElementById('out').textContent = `cur=${cur.toFixed(1)} paused=${paused} rate=${v.playbackRate} muted=${v.muted}\n` +
+      window.__logs.map((m) => `[${m.task}] ${m.status}`).join('\n').slice(-900);
+  }, 500);
+</script>
+<script src="/extension/engine.js"></script>
+<script src="/extension/brush-zhs5.js"></script>
+</body>
+</html>

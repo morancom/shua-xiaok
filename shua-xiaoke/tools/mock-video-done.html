@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>mock-video-done</title>
+<style>
+  body { font: 14px/1.6 system-ui, "Microsoft YaHei", sans-serif; margin: 16px; color: #222; }
+  #wrap { display: flex; gap: 16px; align-items: flex-start; }
+  #catalog { width: 240px; border: 1px solid #ddd; border-radius: 6px; padding: 6px 0; }
+  .posCatalog_select { padding: 6px 10px; cursor: pointer; }
+  .posCatalog_active { background: #eef4ff; font-weight: 600; }
+  .posCatalog_name { display: inline-block; }
+  .icon_Completed { float: right; color: #16a34a; font-weight: 700; }
+  #stage { flex: 1; min-width: 420px; border: 1px solid #ddd; border-radius: 6px; padding: 8px; }
+  #iframe { width: 100%; height: 300px; border: 0; }
+  #out { margin-top: 12px; white-space: pre-wrap; background: #f7f7f8; border: 1px solid #e5e5e5; border-radius: 6px; padding: 8px; font-size: 12px; }
+  #verdict { font-size: 16px; font-weight: 700; }
+</style>
+</head>
+<body>
+<h3>mock-video-done —— 复现「目录已打勾，但播放器没播过」的跳节死锁</h3>
+<p>目录里当前节带 <code>.icon_Completed</code>；学习页里有一个 <code>/ananas/modules/video/</code> 任务 iframe，video 的 duration=0、从没播过。
+   期望：插件直接按目录进度推进下一节（旧版会被安全网拦下，永远卡住）。</p>
+<div id="wrap">
+  <div id="catalog">
+    <div class="posCatalog_select posCatalog_active" id="curA">
+      <span class="posCatalog_name" onclick="getTeacherAjax(249709761,153142699,939425612)">1.1.7 联结词全功能集</span><span class="icon_Completed">✓</span>
+    </div>
+    <div class="posCatalog_select" id="curB"><span class="posCatalog_name" onclick="getTeacherAjax(249709761,153142699,939425617)">1.1.8 组合电路</span></div>
+    <div class="posCatalog_select" id="curC"><span class="posCatalog_name" onclick="getTeacherAjax(249709761,153142699,939425625)">1.1.9 推理理论</span></div>
+    <div class="posCatalog_select" id="curD"><span class="posCatalog_name" onclick="getTeacherAjax(249709761,153142699,939425631)">1.1.10 章节测验3</span></div>
+  </div>
+  <div id="stage">
+    <iframe id="iframe" src="/tools/mock-video-done-study.html"></iframe>
+    <div><button id="prevNextFocusNext">下一节</button></div>
+  </div>
+</div>
+<div id="out"><div id="verdict">running…</div><div id="line">-</div></div>
+
+<script>
+  // ---- 环境参数 ----
+  var P = new URLSearchParams(location.search);
+  // 真机目录项的 innerHTML 里带 chapterId，catalogCurrent 靠它兜底匹配；这里把当前 chapterId 补进地址
+  if (!P.get('chapterId')) {
+    try {
+      var q = 'chapterId=939425612';
+      if (P.get('nocat')) q += '&nocat=1';
+      if (P.get('skip')) q += '&skip=1';
+      history.replaceState(null, '', location.pathname + '?' + q);
+      P = new URLSearchParams(location.search);
+    } catch (e) {}
+  }
+  window.__nextClicks = 0;
+  window.__catClicks = 0;
+  window.__logs = [];
+  // ?nocat=1 —— 对照组：去掉目录勾，应当「不跳」（证明是目录勾解开了死锁）
+  // ?skip=1  —— 跨节用例：把 1.1.8 也标成已打勾，期望直接跳到 1.1.9
+  if (P.get('nocat')) {
+    var ic = document.querySelector('#curA .icon_Completed');
+    if (ic) ic.parentNode.removeChild(ic);
+  }
+  if (P.get('skip')) {
+    var b = document.querySelector('#curB');
+    var bspan = document.createElement('span');
+    bspan.className = 'icon_Completed';
+    bspan.textContent = '✓';
+    b.appendChild(bspan);
+  }
+  document.getElementById('prevNextFocusNext').addEventListener('click', function () {
+    window.__nextClicks += 1;
+    render();
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('.posCatalog_name'), function (n) {
+    n.addEventListener('click', function () { window.__catClicks += 1; render(); });
+  });
+
+  // ---- chrome / SXK 桩 ----
+  window.__store = {};
+  window.chrome = {
+    runtime: {
+      getManifest: function () { return { version: 'mock' }; },
+      sendMessage: function (m, cb) { if (typeof cb === 'function') { try { cb({ ok: true }); } catch (e) {} } },
+      onMessage: { addListener: function () {} }
+    },
+    storage: {
+      local: {
+        get: function (k, cb) {
+          var out = {};
+          var keys = Array.isArray(k) ? k : (typeof k === 'string' ? [k] : Object.keys(k || {}));
+          keys.forEach(function (kk) { if (kk in window.__store) out[kk] = window.__store[kk]; });
+          if (typeof cb === 'function') cb(out);
+        },
+        set: function (o, cb) { Object.assign(window.__store, o || {}); if (typeof cb === 'function') cb(); },
+        remove: function (k, cb) { (Array.isArray(k) ? k : [k]).forEach(function (kk) { delete window.__store[kk]; }); if (typeof cb === 'function') cb(); }
+      }
+    }
+  };
+  window.SXK = {
+    getSettings: function () { return { autoJump: true, autoVideo: true, autoAnswer: true, autoSubmit: true }; },
+    isReady: function () { return true; },
+    log: function (task, msg) { window.__logs.push(task + ' | ' + msg); if (window.__logs.length > 200) window.__logs.shift(); },
+    sendLog: function () {}
+  };
+</script>
+<script src="/extension/cx.js"></script>
+<script>
+  var startAt = Date.now();
+  var expectStuck = !!P.get('nocat');
+  var clicked = false;
+  // 跨节用例:goCatalog 会把地址改成目标节的 chapterId → 刷新后在这里判定成功
+  var TARGET_CID = '939425625';   // 1.1.9 推理理论(catalog 里第一个没打勾的节)
+  if (P.get('skip') && P.get('chapterId') === TARGET_CID) {
+    document.getElementById('verdict').textContent = 'SKIP-PASS —— 已按目录勾跨节跳到 ' + TARGET_CID + '（1.1.9）';
+    document.getElementById('verdict').style.color = '#16a34a';
+    document.title = 'SKIP-PASS';
+    window.__skipPass = true;
+  }
+
+  function snap() {
+    var out = { fin: null, catDone: null, vids: 0, frames: 0 };
+    try {
+      var S = window.SXKCX;
+      var frames = S.framesOf('video') || [];
+      out.frames = (S.framesOf('video') || []).length + (S.framesOf('doc') || []).length;
+      out.vids = frames.length;
+      if (frames.length) out.fin = S.taskFinished(frames[0]);
+      var cur = document.querySelector('.posCatalog_select.posCatalog_active');
+      out.catDone = !!(cur && cur.querySelector('.icon_Completed'));
+    } catch (e) { out.err = String(e); }
+    return out;
+  }
+
+  function render() {
+    if (window.__skipPass) return;
+    var s = snap();
+    var el = document.getElementById('verdict');
+    var ln = document.getElementById('line');
+    var jumped = (window.__nextClicks > 0 || window.__catClicks > 0);
+    if (jumped) { clicked = true; }
+    var elapsed = ((Date.now() - startAt) / 1000).toFixed(1);
+    ln.textContent = 'frames=' + s.frames + ' vids=' + s.vids + ' taskFinished=' + s.fin +
+      ' catalogDone=' + s.catDone + ' nextClicks=' + window.__nextClicks +
+      ' catClicks=' + window.__catClicks + ' t=' + elapsed + 's';
+    document.title = (clicked ? 'PASS ' : (expectStuck ? 'STUCK-OK ' : 'WAIT ')) + 'fin=' + s.fin;
+    if (clicked) {
+      el.textContent = 'PASS —— 已推进下一节（taskFinished=' + s.fin + '）';
+      el.style.color = '#16a34a';
+    } else if (Date.now() - startAt > 12000) {
+      el.textContent = expectStuck
+        ? 'STUCK(对照组预期) —— 去掉目录勾后不跳，说明解锁的正是目录勾'
+        : 'FAIL —— 12 秒内没跳（死锁仍在）';
+      el.style.color = expectStuck ? '#a16207' : '#dc2626';
+      document.title = (expectStuck ? 'STUCK-OK ' : 'FAIL ') + 'fin=' + s.fin;
+    } else {
+      el.textContent = 'running… 等待 tick 判定';
+      el.style.color = '#333';
+    }
+  }
+
+  // 模拟 brush.js 的 2 秒 tick（这里 500ms 跑一轮，加速验证）
+  setTimeout(function tick() {
+    if (window.__skipPass) return;
+    try { window.SXKCX.tick(); } catch (e) { window.__logs.push('tick-err | ' + String(e)); }
+    render();
+    if (!clicked && Date.now() - startAt < 16000) setTimeout(tick, 500);
+  }, 300);
+
+  setTimeout(render, 200);
+</script>
+</body>
+</html>

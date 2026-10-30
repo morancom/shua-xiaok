@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>old-study-top</title>
+<style>
+  body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:16px}
+  #prevNextFocusNext{padding:8px 26px;border-radius:16px;background:#4a8cff;color:#fff;border:0;cursor:pointer}
+  iframe{width:100%;height:420px;border:1px solid #ddd;border-radius:6px;margin-top:14px}
+  #out{white-space:pre-wrap;background:#f6f8fa;border-radius:6px;padding:10px;margin-top:14px;font:12px/1.5 Consolas,monospace}
+</style></head>
+<body>
+<h3>模拟 mooc1 studentstudy + #iframe 作业页</h3>
+<div>
+  <button id="prevNextFocusNext" onclick="window.__nextClicks=(window.__nextClicks||0)+1">下一节</button>
+</div>
+<iframe id="iframe" src="about:blank"></iframe>
+<div id="out">WAITING</div>
+
+<script>
+  // mode=answered(默认):题目全部已答 → 走 watchAutoSubmit 的「全部答完就提交」
+  // mode=idle:留空题 → 走 watchQuizIdle 的 10 秒兜底强制提交
+  var MODE = 'answered';
+  try { MODE = new URLSearchParams(location.search).get('mode') || 'answered'; } catch (e) {}
+  document.getElementById('iframe').src =
+    '/tools/mock-old-study-if.html?answered=' + (MODE === 'idle' ? '0' : '1');
+
+  window.__submitMsg = null;
+  window.__logs = [];
+  window.__nextClicks = 0;
+  window.chrome = {
+    runtime: {
+      sendMessage: function (msg, cb) {
+        if (msg && msg.type === 'GET_SETTINGS') {
+          var ret = { ok: true, settings: { autoAnswer: true, autoSubmit: true, autoVideo: false, autoJump: true, playbackRate: 1 } };
+          if (cb) { setTimeout(function () { cb(ret); }, 0); return; }
+          return Promise.resolve(ret);
+        }
+        if (msg && msg.type === 'BRUSH_REPORT') { window.__logs.push(msg.task + ':' + msg.status); return Promise.resolve({ ok: true }); }
+        if (msg && msg.type === 'AUTO_SUBMIT_PAGE') {
+          window.__submitMsg = msg;
+          // 真实后台会回到页面主世界点提交;这里用 stub 直接回 ok
+          window.__submitAt = Date.now();
+          if (cb) { setTimeout(function () { cb({ ok: true, text: '提交', dialog: '#confirmWin.Alertcon2', yes: '确定' }); }, 0); return; }
+          return Promise.resolve({ ok: true, text: '提交' });
+        }
+        if (cb) setTimeout(function () { cb({ ok: true }); }, 0);
+        return Promise.resolve({ ok: true });
+      }
+    }
+  };
+</script>
+<script src="/extension/engine.js"></script>
+<script>
+  (async function () {
+    var out = document.getElementById('out');
+    var S = window.__SXK;
+    if (!S) { out.textContent = 'FAIL 没有 __SXK'; document.title = 'FAIL'; return; }
+    await S.loadSettings();
+    S.watchAutoSubmit('mock');
+    S.watchQuizIdle('mock');
+    var t0 = Date.now();
+    out.textContent = 'WATCHING mode=' + MODE;
+    var iv = setInterval(function () {
+      var done = window.__submitMsg && window.__nextClicks > 0;
+      var overtime = Date.now() - t0 > (MODE === 'idle' ? 30000 : 22000);
+      if (!done && !overtime) return;
+      clearInterval(iv);
+      var pass = !!done;
+      var brief = {
+        mode: MODE,
+        submit: window.__submitMsg ? 'AUTO_SUBMIT_PAGE' : null,
+        seconds: Math.round((Date.now() - t0) / 1000),
+        nextClicks: window.__nextClicks,
+        logs: window.__logs.slice(-14),
+      };
+      out.textContent = (pass ? 'PASS ' : 'FAIL ') + JSON.stringify(brief, null, 1);
+      document.title = pass ? 'PASS' : 'FAIL';
+    }, 500);
+  })();
+</script>
+</body></html>

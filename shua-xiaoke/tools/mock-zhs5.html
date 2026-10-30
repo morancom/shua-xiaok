@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>zhs5 mock running</title>
+<style>
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; margin: 0; padding: 14px; background: #0f1420; color: #e6edf7; }
+  #out { font: 13px/1.6 ui-monospace, Consolas, monospace; white-space: pre-wrap; background: #161b26; padding: 12px; border-radius: 8px; }
+  .box { border: 1px solid #2a3346; border-radius: 8px; padding: 10px; margin-bottom: 12px; }
+  .quiz-dialog { position: fixed; left: 30px; top: 30px; width: 260px; background: #fff; color: #111; border-radius: 10px; padding: 14px; box-shadow: 0 8px 30px rgba(0,0,0,.45); z-index: 99; }
+  .next-btn { display: inline-block; padding: 8px 18px; background: #2b7cff; color: #fff; border-radius: 6px; cursor: pointer; }
+  video { background: #000; border-radius: 6px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div id="fake-player">
+    <video id="v1" width="420" height="236"></video>
+  </div>
+  <p><span class="next-btn" id="next">下一集</span> <button id="playToggle">播放/暂停</button></p>
+</div>
+<div class="box">
+  <iframe id="f1" src="mock-zhs5-if.html" style="width:300px;height:120px;border:1px solid #2a3346"></iframe>
+</div>
+<div class="quiz-dialog" id="pop">
+  <p style="margin:0 0 8px">弹题:智慧树会在播放中弹这个框</p>
+  <button id="popBtn">继续学习</button>
+</div>
+<div id="out">init</div>
+
+<script>
+  // ---------- 记录/桩 ----------
+  window.__closed = 0;
+  window.__nextClicks = 0;
+  window.__jumpLogs = [];
+  window.__logs = [];
+
+  function renderOut(text) {
+    document.getElementById('out').textContent = text;
+  }
+
+  function collectLogs() {
+    return window.__logs.map((m) => `[${m.task}] ${m.status}`).join('\n');
+  }
+
+  function handle(msg) {
+    if (!msg || !msg.type) return { ok: true };
+    if (msg.type === 'GET_SETTINGS') {
+      return { ok: true, settings: { autoVideo: true, playbackRate: 2, autoJump: true, autoAnswer: true, autoSubmit: false } };
+    }
+    if (msg.type === 'SET_SETTINGS') return { ok: true, settings: { autoVideo: true, playbackRate: 2, autoJump: true } };
+    if (msg.type === 'BRUSH_REPORT') {
+      window.__logs.push({ site: msg.site, task: msg.task, status: msg.status, t: Date.now() });
+      return { ok: true };
+    }
+    return { ok: true, result: null };
+  }
+
+  window.chrome = {
+    runtime: {
+      sendMessage: (m) => Promise.resolve(handle(m)),
+      onMessage: { addListener() {} },
+    },
+    storage: {
+      local: {
+        get: () => Promise.resolve({}),
+        set: () => Promise.resolve(),
+      },
+    },
+  };
+
+  // ---------- 假播放器:真实 <video> 节点 + 受控 duration/currentTime/paused ----------
+  const v = document.getElementById('v1');
+  let cur = 95;          // 从接近结尾开始,几秒内就能触发「播完下一集」
+  let paused = true;
+  Object.defineProperty(v, 'duration', { get: () => 100 });
+  Object.defineProperty(v, 'currentTime', { get: () => cur, set: (x) => { cur = x; } });
+  Object.defineProperty(v, 'ended', { get: () => false });
+  Object.defineProperty(v, 'paused', { get: () => paused });
+  v.play = () => { paused = false; return Promise.resolve(); };
+  v.pause = () => { paused = true; };
+
+  setInterval(() => { if (!paused) { cur = Math.min(99.9, cur + 1); } }, 1000);
+
+  document.getElementById('next').addEventListener('click', () => {
+    window.__nextClicks += 1;
+    window.__jumpLogs.push('next-clicked');
+  });
+  document.getElementById('popBtn').addEventListener('click', () => {
+    window.__closed += 1;
+    document.getElementById('pop').style.display = 'none';
+  });
+  document.getElementById('playToggle').addEventListener('click', () => {
+    paused = !paused;
+  });
+
+  // ---------- 断言 ----------
+  let passed = false;
+  function check() {
+    const domLogged = window.__logs.some((m) => m.task === 'zhs5-dom');
+    const videoLogged = window.__logs.some((m) => /^zhs5.*-video$/.test(m.task) || /video/.test(m.task));
+    const ok = window.__closed >= 1
+      && window.__nextClicks >= 1
+      && v.muted === true
+      && Math.abs(v.playbackRate - 2) < 0.05
+      && paused === false
+      && domLogged;
+    const verdict = ok ? 'PASS' : 'WAIT';
+    if (ok && !passed) { passed = true; document.title = 'ZHS5-PASS'; }
+    renderOut([
+      `verdict=${verdict}`,
+      `closed=${window.__closed} nextClicks=${window.__nextClicks}`,
+      `muted=${v.muted} rate=${v.playbackRate} paused=${paused} cur=${cur.toFixed(1)}`,
+      `domLogged=${domLogged} videoLogged=${videoLogged} logs=${window.__logs.length}`,
+      '--- logs ---',
+      collectLogs().slice(-2200),
+    ].join('\n'));
+  }
+  setInterval(check, 500);
+</script>
+
+<!-- 被测脚本:engine.js 提供 SXK,brush-zhs5.js 是智慧树适配 -->
+<script src="/extension/engine.js"></script>
+<script src="/extension/brush-zhs5.js"></script>
+</body>
+</html>

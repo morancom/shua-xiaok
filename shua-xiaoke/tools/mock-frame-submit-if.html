@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>frame-submit-if</title>
+<style>
+  body{font:14px/1.6 system-ui,"Microsoft YaHei";padding:14px;background:#fff}
+  .CeYan{max-width:720px;margin:0 auto}
+  .TiMu{border:1px solid #e5e5e5;border-radius:6px;padding:10px;margin:10px 0}
+  .mark_letter{list-style:none;padding:0;margin:6px 0 0}
+  .mark_letter li{display:inline-block;margin-right:18px}
+  .ZY_sub{margin-top:18px;display:flex;gap:14px;justify-content:flex-end}
+  .btnSave{border:1px solid #4a90e2;color:#4a90e2;border-radius:16px;padding:6px 22px;text-decoration:none}
+  .btnSubmit{background:#4a8cff;color:#fff;border-radius:16px;padding:6px 28px;text-decoration:none}
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:90}
+  .Alertcon2{position:fixed;left:50%;top:38%;transform:translateX(-50%);width:338px;height:139px;z-index:120;
+    background:#fff;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.25);text-align:center;padding:10px 0}
+  .blueBtn,.grayBtn{display:inline-block;margin:12px 8px 0;padding:5px 24px;border-radius:14px;text-decoration:none}
+  .blueBtn{background:#4a8cff;color:#fff}
+  .grayBtn{border:1px solid #ccc;color:#666}
+</style></head>
+<body>
+<div class="CeYan">
+  <div class="TiMu"><div class="Zy_TItle">28 【判断题】一个文字即是简单析取式,又是简单合取式( &nbsp;)。</div>
+    <ul class="mark_letter colorDeep">
+      <li><label><input type="radio" name="a28" value="true"> A 对</label></li>
+      <li><label><input type="radio" name="a28" value="false"> B 错</label></li>
+    </ul>
+  </div>
+  <div class="TiMu"><div class="Zy_TItle">29 【判断题】任一命题公式都存在唯一与之等值的析取范式与合取范式( &nbsp;)。</div>
+    <ul class="mark_letter colorDeep">
+      <li><label><input type="radio" name="a29" value="true"> A 对</label></li>
+      <li><label><input type="radio" name="a29" value="false"> B 错</label></li>
+    </ul>
+  </div>
+
+  <div class="ZY_sub clearfix">
+    <a class="btnSave" href="javascript:void(0);" onclick="window.__saved=1"><span>暂时保存</span></a>
+    <a class="btnSubmit workBtnIndex" href="javascript:void(0);" role="button" onclick="btnBlueSubmit();"><span title="提交">提交</span></a>
+  </div>
+</div>
+
+<div class="mask" style="display:none"></div>
+<div class="Alertcon2" id="confirmWin" style="display:none" role="alertdialog" aria-label="确认提交">
+  <a class="blueBtn" href="javascript:void(0);" onclick="__doSubmit()">确定</a>
+  <a class="grayBtn" href="javascript:void(0);" onclick="__cancelSubmit()">取消</a>
+</div>
+
+<script>
+  var ANSWERED = true;
+  try { ANSWERED = (new URLSearchParams(location.search).get('answered') || '1') === '1'; } catch (e) {}
+  window.__submitCount = 0;
+  window.__saved = 0;
+  window.__logs = [];
+  function __doSubmit() { window.__submitCount += 1; document.getElementById('confirmWin').style.display = 'none'; document.querySelector('.mask').style.display = 'none'; }
+  function __cancelSubmit() { document.getElementById('confirmWin').style.display = 'none'; document.querySelector('.mask').style.display = 'none'; }
+  function btnBlueSubmit() { document.getElementById('confirmWin').style.display = 'block'; document.querySelector('.mask').style.display = 'block'; }
+  if (ANSWERED) {
+    var boxes = document.querySelectorAll('input[type=radio][name=a28],input[type=radio][name=a29]');
+    for (var i = 0; i < boxes.length; i += 2) { if (boxes[i]) boxes[i].checked = true; }
+  }
+</script>
+<script src="/extension/pageSubmit.js"></script>
+<script>
+  // 这一层就是真机里的「作业 iframe」:它有自己的 chrome 通道,只看得到自己能看到的 DOM。
+  var store = {};
+  window.chrome = {
+    runtime: {
+      onMessage: { addListener: function () {} },
+      sendMessage: function (msg, cb) {
+        var ret = { ok: true };
+        if (msg && msg.type === 'GET_SETTINGS') {
+          ret = { ok: true, settings: { autoAnswer: true, autoSubmit: true, autoVideo: false, autoJump: true, playbackRate: 1 } };
+        } else if (msg && msg.type === 'BRUSH_REPORT') {
+          window.__logs.push(msg.task + ':' + String(msg.status).slice(0, 120));
+        } else if (msg && msg.type === 'SOLVE') {
+          // 模拟「答不出来」:真机里图片选项题就是这样,答题器每 6 秒跑一轮却一道也没答上
+          window.__logs.push('solve:' + String(msg.question || '').slice(0, 30));
+          ret = { ok: true, result: null };
+        } else if (msg && msg.type === 'AUTO_SUBMIT_PAGE') {
+          // 真实后台会 executeScript 到页面主世界点提交;这里直接调同一个函数
+          pageSubmit().then(function (r) {
+            window.__pageSubmitRet = r;
+            if (cb) cb(r);
+          });
+          return;
+        } else if (msg && msg.type === 'SXK_JUMP_REQUEST') {
+          // 真实链路:后台 → 顶层 content script → 顶层点下一节
+          var ok = false;
+          try { ok = window.top.__jumpNext(); } catch (e) { ok = false; }
+          window.__logs.push('jump-request:' + (ok ? 'top-clicked' : 'failed'));
+          ret = { ok: !!ok };
+        }
+        if (cb) { setTimeout(function () { cb(ret); }, 0); return; }
+        return Promise.resolve(ret);
+      }
+    },
+    storage: {
+      local: {
+        get: function (k) { var o = {}; if (typeof k === 'string') { if (k in store) o[k] = store[k]; } else if (Array.isArray(k)) { k.forEach(function (x) { if (x in store) o[x] = store[x]; }); } else if (k && typeof k === 'object') { Object.keys(k).forEach(function (x) { o[x] = (x in store) ? store[x] : k[x]; }); } return Promise.resolve(o); },
+        set: function (o) { Object.assign(store, o || {}); return Promise.resolve(); }
+      }
+    }
+  };
+</script>
+<script src="/extension/engine.js"></script>
+<script>
+  (async function () {
+    var S = window.__SXK;
+    if (!S) { window.__logs.push('FAIL 没有 __SXK'); document.title = 'FAIL-noengine'; return; }
+    await S.loadSettings();
+    S.watchAutoAnswer('mock');
+    S.watchAutoSubmit('mock');
+    S.watchQuizIdle('mock');
+    document.title = 'READY-' + (ANSWERED ? 'answered' : 'idle');
+  })();
+</script>
+</body></html>

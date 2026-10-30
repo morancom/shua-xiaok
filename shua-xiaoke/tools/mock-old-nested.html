@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>old-nested-top</title>
+<style>
+  body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:16px}
+  #prevNextFocusNext{padding:8px 26px;border-radius:16px;background:#4a8cff;color:#fff;border:0;cursor:pointer}
+  iframe{width:100%;height:340px;border:1px solid #ddd;border-radius:6px;margin-top:12px}
+  #out{white-space:pre-wrap;background:#f6f8fa;border-radius:6px;padding:10px;margin-top:12px;font:12px/1.5 Consolas,monospace}
+</style></head>
+<body>
+<h3>模拟 studentstudy → #iframe(工作模块) → 内层 iframe(题目)</h3>
+<button id="prevNextFocusNext" onclick="window.__nextClicks=(window.__nextClicks||0)+1">下一节</button>
+<iframe id="iframe" src="/tools/mock-old-nested-mid.html"></iframe>
+<div id="out">WAITING</div>
+<script>
+  window.__submitMsg = null;
+  window.__logs = [];
+  window.__nextClicks = 0;
+  window.chrome = {
+    runtime: {
+      sendMessage: function (msg, cb) {
+        var reply = { ok: true };
+        if (msg && msg.type === 'GET_SETTINGS') {
+          reply = { ok: true, settings: { autoAnswer: true, autoSubmit: true, autoVideo: false, autoJump: true, playbackRate: 1 } };
+        } else if (msg && msg.type === 'BRUSH_REPORT') {
+          window.__logs.push(msg.task + ':' + msg.status); return cb ? (cb({ ok: true }), undefined) : Promise.resolve({ ok: true });
+        } else if (msg && msg.type === 'AUTO_SUBMIT_PAGE') {
+          window.__submitMsg = msg;
+          reply = { ok: true, text: '提交', dialog: '#confirmWin.Alertcon2', yes: '确定' };
+        }
+        if (cb) { setTimeout(function () { cb(reply); }, 0); return; }
+        return Promise.resolve(reply);
+      }
+    }
+  };
+</script>
+<script src="/extension/engine.js"></script>
+<script>
+  (async function () {
+    var out = document.getElementById('out');
+    var S = window.__SXK;
+    if (!S) { out.textContent = 'FAIL 没有 __SXK'; document.title = 'FAIL'; return; }
+    await S.loadSettings();
+    S.watchAutoSubmit('nested');
+    S.watchQuizIdle('nested');
+    var t0 = Date.now();
+    out.textContent = 'WATCHING 嵌套 iframe';
+    var iv = setInterval(function () {
+      var done = window.__submitMsg && window.__nextClicks > 0;
+      var overtime = Date.now() - t0 > 24000;
+      if (!done && !overtime) return;
+      clearInterval(iv);
+      var pass = !!done;
+      out.textContent = (pass ? 'PASS ' : 'FAIL ') + JSON.stringify({
+        submit: window.__submitMsg ? 'AUTO_SUBMIT_PAGE' : null,
+        seconds: Math.round((Date.now() - t0) / 1000),
+        nextClicks: window.__nextClicks,
+        logs: window.__logs.slice(-12),
+      }, null, 1);
+      document.title = pass ? 'PASS' : 'FAIL';
+    }, 500);
+  })();
+</script>
+</body></html>

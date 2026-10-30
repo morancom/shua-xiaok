@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>刷小课 · 本地控制台</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">📚</div>
+    <div>
+      <h1>刷小课</h1>
+      <div class="sub">本地刷课做题助手 · 数据不出本机</div>
+    </div>
+    <div class="pill"><span class="dot" id="statusDot"></span><span id="statusTxt">运行中</span></div>
+  </header>
+
+  <div class="grid">
+    <!-- stats -->
+    <div class="card stat col-3"><h3><span class="ico">📝</span>解题次数</h3><div class="num" id="statSolve">0</div><div class="lbl">累计</div></div>
+    <div class="card stat col-3"><h3><span class="ico">💬</span>对话轮次</h3><div class="num" id="statChat">0</div><div class="lbl">累计</div></div>
+    <div class="card stat col-3"><h3><span class="ico">⏱</span>运行时长</h3><div class="num" id="statUptime">0h</div><div class="lbl">自启动</div></div>
+    <div class="card stat col-3"><h3><span class="ico">🤖</span>模型状态</h3><div style="margin-top:8px" id="upstreamBadge">加载中…</div><div class="lbl">解题后端</div></div>
+
+    <!-- settings -->
+    <div class="card col-5">
+      <h3>⚙️ 刷课设置</h3>
+      <div class="row">
+        <div><div class="name">自动播放视频</div><div class="desc">进入课程自动开始播放</div></div>
+        <label class="switch right"><input type="checkbox" id="setAutoVideo"><span class="slider"></span></label>
+      </div>
+      <div class="row">
+        <div><div class="name">自动跳下一节</div><div class="desc">当前节完成后自动进入下一节</div></div>
+        <label class="switch right"><input type="checkbox" id="setAutoJump"><span class="slider"></span></label>
+      </div>
+      <div class="row">
+        <div><div class="name">自动做题</div><div class="desc">识别题目自动填答案</div></div>
+        <label class="switch right"><input type="checkbox" id="setAutoAnswer"><span class="slider"></span></label>
+      </div>
+      <div class="row">
+        <div><div class="name">自动交卷</div><div class="desc">填完自动提交(默认关闭)</div></div>
+        <label class="switch right"><input type="checkbox" id="setAutoSubmit"><span class="slider"></span></label>
+      </div>
+      <div class="row">
+        <div><div class="name">播放倍速</div><div class="desc">当前 <span id="setRateVal">1.5x</span></div></div>
+        <input class="right" type="range" id="setRate" min="0.5" max="3" step="0.5" style="width:140px">
+      </div>
+    </div>
+
+    <!-- upstream config -->
+    <div class="card col-7">
+      <h3>🔌 真实模型(可选)</h3>
+      <div class="hint" style="margin-bottom:12px">填任意 OpenAI 兼容接口的地址与密钥,解题和对话即用真实模型;留空则为演示模式。</div>
+      <div class="row"><div class="name" style="width:70px">接口</div><input type="text" id="setUpstreamUrl" placeholder="https://api.deepseek.com/v1/chat/completions" style="flex:1"></div>
+      <div class="row"><div class="name" style="width:70px">密钥</div><input type="password" id="setUpstreamKey" placeholder="sk-..." style="flex:1"></div>
+      <div class="row"><div class="name" style="width:70px">模型</div><input type="text" id="setModel" placeholder="deepseek-chat" style="flex:1"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px;align-items:center">
+        <span id="upstreamHint" class="hint" style="margin-right:auto">改动切走会自动保存;点右边按钮立即保存</span>
+        <button id="upstreamEye" type="button" style="padding:2px 8px" title="显示/隐藏密钥">👁</button>
+        <button id="btnSaveUpstream">保存模型配置</button>
+      </div>
+    </div>
+
+    <!-- solves -->
+    <div class="card col-7">
+      <h3>📝 解题记录 <span class="badge">最近 50 条</span></h3>
+      <table id="solveTable"><thead><tr><th>时间</th><th>题目</th><th>答案</th></tr></thead><tbody></tbody></table>
+    </div>
+
+    <!-- chat demo -->
+    <div class="card col-5">
+      <h3>💬 对话测试</h3>
+      <div class="row" style="margin-bottom:10px">
+        <input type="text" id="testQ" placeholder="题目,如:下列哪个是偶数?" style="flex:1">
+        <input type="text" id="testOpts" placeholder="选项 逗号分隔" style="width:140px">
+        <button class="sm" id="btnTestSolve">解题</button>
+      </div>
+      <div class="chat"></div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="和 AI 对话…">
+        <button id="btnSend">发送</button>
+      </div>
+    </div>
+
+    <!-- logs -->
+    <div class="card col-12">
+      <h3>📋 运行日志 <span class="badge"><button class="sm ghost" id="btnClearLogs">清空</button></span></h3>
+      <div class="logs"></div>
+    </div>
+
+    <!-- 诊断日志:课程页点「诊断日志」后,现场时间线会传到这里的「诊断日志」模块 -->
+    <div class="card col-12">
+      <h3>🐞 诊断日志(课程页)
+        <span class="badge">
+          <button class="sm ghost" id="btnLoadCxLog">刷新</button>
+          <button class="sm ghost" id="btnCopyCxLog">复制</button>
+        </span>
+      </h3>
+      <div class="hint" id="cxLogMeta">还没有收到诊断日志。在课程页打开侧边栏,点「诊断日志」即可采集。</div>
+      <pre id="cxLogText" style="max-height:340px;overflow:auto;white-space:pre-wrap;word-break:break-all;font:12px/1.55 ui-monospace,Consolas,monospace;background:#0d1220;color:#c8d3ea;border-radius:12px;padding:12px;margin:10px 0 0"></pre>
+    </div>
+
+    <!-- usage -->
+    <div class="card col-12">
+      <h3>📖 使用说明</h3>
+      <div class="hint">
+        1. 启动后端:<span class="kbd">node server.js</span>,控制台访问 <span class="kbd">http://127.0.0.1:3001/ui</span><br>
+        2. 安装扩展:Edge → 扩展 → 开发者模式 → 加载已解压的扩展 → 选择 <span class="kbd">extension/</span> 目录<br>
+        3. 打开超星 / 学习通 / 智慧树 / U校园课程页,扩展自动接管;按 <span class="kbd">Ctrl+Shift+S</span> 打开侧边栏对话框<br>
+        4. 所有数据仅存本机,不上传任何第三方服务器;接真实模型只需在上方填入自己的接口与密钥
+      </div>
+    </div>
+  </div>
+</div>
+<script src="/app.js"></script>
+</body>
+</html>

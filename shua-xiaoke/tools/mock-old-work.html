@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>old-work</title>
+<style>
+  body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:20px;background:#fff}
+  .CeYan{max-width:760px;margin:0 auto}
+  .TiMu{border:1px solid #e5e5e5;border-radius:6px;padding:12px;margin:12px 0}
+  .mark_letter{list-style:none;padding:0;margin:8px 0 0}
+  .mark_letter li{display:inline-block;margin-right:18px}
+  .ZY_sub{margin-top:22px;display:flex;gap:14px;justify-content:flex-end}
+  .btnSave{border:1px solid #4a90e2;color:#4a90e2;border-radius:16px;padding:6px 22px;text-decoration:none}
+  .btnSubmit{background:#4a8cff;color:#fff;border-radius:16px;padding:6px 28px;text-decoration:none}
+  .mask{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:90}
+  .Alertcon2{position:fixed;left:50%;top:38%;transform:translateX(-50%);width:338px;height:139px;z-index:120;
+    background:#fff;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.25);text-align:center;padding:10px 0}
+  .Alertcon2 h3{margin:6px 0;font-size:15px}
+  .Alertcon2 p{margin:6px 0;color:#666;font-size:13px}
+  .blueBtn,.grayBtn{display:inline-block;margin:12px 8px 0;padding:5px 24px;border-radius:14px;text-decoration:none}
+  .blueBtn{background:#4a8cff;color:#fff}
+  .grayBtn{border:1px solid #ccc;color:#666}
+</style></head>
+<body>
+<div class="CeYan">
+  <div class="TiMu"><div class="Zy_TItle">28 【判断题】一个文字即是简单析取式,又是简单合取式( &nbsp;)。</div>
+    <ul class="mark_letter colorDeep">
+      <li><label><input type="radio" name="a28" value="true"> A 对</label></li>
+      <li><label><input type="radio" name="a28" value="false"> B 错</label></li>
+    </ul>
+  </div>
+  <div class="TiMu"><div class="Zy_TItle">29 【判断题】任一命题公式都存在唯一与之等值的析取范式与合取范式( &nbsp;)。</div>
+    <ul class="mark_letter colorDeep">
+      <li><label><input type="radio" name="a29" value="true"> A 对</label></li>
+      <li><label><input type="radio" name="a29" value="false"> B 错</label></li>
+    </ul>
+  </div>
+
+  <div class="ZY_sub clearfix">
+    <a class="btnSave" href="javascript:void(0);" onclick="window.__saved=1"><span>暂时保存</span></a>
+    <a class="btnSubmit workBtnIndex" href="javascript:void(0);" role="button" onclick="btnBlueSubmit();"><span title="提交">提交</span></a>
+  </div>
+</div>
+
+<div class="mask" style="display:none"></div>
+<div class="Alertcon2" id="confirmWin" style="display:none" role="alertdialog" aria-label="确认提交">
+  <h3>提示</h3>
+  <p>还有 2 道题未作答,确定提交吗?</p>
+  <a class="blueBtn" href="javascript:void(0);" onclick="__doSubmit()">确定</a>
+  <a class="grayBtn" href="javascript:void(0);" onclick="__cancelSubmit()">取消</a>
+</div>
+
+<div id="out">WAITING</div>
+<script>
+  window.__submitted = 0;
+  window.__cancelled = 0;
+  function __doSubmit() {
+    window.__submitted += 1;
+    document.getElementById('confirmWin').style.display = 'none';
+    document.querySelector('.mask').style.display = 'none';
+  }
+  function __cancelSubmit() {
+    window.__cancelled += 1;
+    document.getElementById('confirmWin').style.display = 'none';
+    document.querySelector('.mask').style.display = 'none';
+  }
+  function btnBlueSubmit() {
+    document.getElementById('confirmWin').style.display = 'block';
+    document.querySelector('.mask').style.display = 'block';
+  }
+</script>
+<script src="/extension/pageSubmit.js"></script>
+<script>
+  (async function () {
+    var out = document.getElementById('out');
+    try {
+      if (typeof pageSubmit !== 'function') { out.textContent = 'FAIL 没有 pageSubmit'; document.title = 'FAIL'; return; }
+      var ret = await pageSubmit();
+      var pass = ret.ok === true && window.__submitted === 1 && window.__cancelled === 0 &&
+        ret.dialog.indexOf('confirmWin') >= 0 && window.__saved !== 1;
+      out.textContent = (pass ? 'PASS ' : 'FAIL ') + JSON.stringify({ submitted: window.__submitted, saved: window.__saved || 0, ret: ret });
+      document.title = pass ? 'PASS' : 'FAIL';
+    } catch (e) { out.textContent = 'FAIL ' + e.message; document.title = 'FAIL'; }
+  })();
+</script>
+</body></html>

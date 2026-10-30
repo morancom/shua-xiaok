@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>自动提交 watcher 测试</title>
+<style>body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:24px}.TiMu{border:1px solid #ddd;padding:14px;margin:12px 0}.optionItem{display:block;margin:6px 0}.fillInput{padding:6px}</style></head>
+<body>
+<div class="TiMu">
+  <div class="questionTxt">1. 下列关于细胞的说法正确的是</div>
+  <div class="Zy_ulBottom">
+    <label class="optionItem"><input type="radio" name="q1"> A. 细胞是生物体结构和功能的基本单位</label>
+    <label class="optionItem"><input type="radio" name="q1"> B. 所有生物都由细胞构成</label>
+  </div>
+</div>
+<div class="TiMu">
+  <div class="questionTxt">2. 细胞是生物体____和功能的基本单位</div>
+  <input type="text" class="fillInput" value="结构">
+</div>
+<div id="out">WAITING</div>
+<script>
+  window.__submitMsg = null;
+  window.__logs = [];
+  window.chrome = {
+    runtime: {
+      sendMessage: function (msg, cb) {
+        if (msg && msg.type === 'GET_SETTINGS') {
+          var ret = { ok: true, settings: { autoAnswer: true, autoSubmit: true, autoVideo: false, autoJump: false, playbackRate: 1 } };
+          if (cb) { setTimeout(function () { cb(ret); }, 0); return; }
+          return Promise.resolve(ret);
+        }
+        if (msg && msg.type === 'BRUSH_REPORT') { window.__logs.push(msg); return; }
+        if (msg && msg.type === 'AUTO_SUBMIT_PAGE') {
+          window.__submitMsg = msg;
+          if (cb) { setTimeout(function () { cb({ ok: true, text: '提交' }); }, 0); return; }
+          return Promise.resolve({ ok: true, text: '提交' });
+        }
+        if (cb) setTimeout(function () { cb({ ok: true }); }, 0);
+        return Promise.resolve({ ok: true });
+      }
+    }
+  };
+</script>
+<script src="/extension/engine.js"></script>
+<script>
+  (async function () {
+    var out = document.getElementById('out');
+    try {
+      document.querySelector('input[name="q1"]').checked = true;
+      var S = window.__SXK;
+      if (!S) { out.textContent = 'FAIL 没有 __SXK'; return; }
+      await S.loadSettings();
+      S.watchAutoSubmit('test');
+      out.textContent = 'WATCHING';
+      setTimeout(function () {
+        var ok = !!(window.__submitMsg && window.__submitMsg.type === 'AUTO_SUBMIT_PAGE');
+        out.textContent = (ok ? 'PASS ' : 'FAIL ') + JSON.stringify({ submitMsg: window.__submitMsg, logs: window.__logs.map(function (x) { return x.task + ':' + x.status; }) });
+        document.title = ok ? 'PASS' : 'FAIL';
+      }, 13000);
+    } catch (e) { out.textContent = 'FAIL ' + e.message; }
+  })();
+</script>
+</body></html>

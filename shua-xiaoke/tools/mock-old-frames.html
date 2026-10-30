@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>old-frames-top</title>
+<style>
+  body{font:15px/1.7 system-ui,"Microsoft YaHei";padding:16px}
+  #confirmWin{position:fixed;left:50%;top:34%;transform:translateX(-50%);width:338px;height:139px;display:none;
+    background:#fff;border-radius:6px;box-shadow:0 6px 24px rgba(0,0,0,.3);text-align:center;padding:10px 0;z-index:120}
+  .blueBtn,.grayBtn{display:inline-block;margin:14px 8px 0;padding:5px 24px;border-radius:14px;text-decoration:none}
+  .blueBtn{background:#4a8cff;color:#fff}
+  .grayBtn{border:1px solid #ccc;color:#666}
+  iframe{width:100%;height:300px;border:1px solid #ddd;border-radius:6px}
+  #out{white-space:pre-wrap;background:#f6f8fa;border-radius:6px;padding:10px;font:12px/1.5 Consolas,monospace}
+</style></head>
+<body>
+<h3>确认框在顶层 / 提交按钮在 iframe（同源）</h3>
+<iframe id="iframe" src="/tools/mock-old-frames-if.html"></iframe>
+
+<div class="Alertcon2" id="confirmWin" role="alertdialog" aria-label="确认提交">
+  <h3>提示</h3><p>还有 2 道题未作答,确定提交吗?</p>
+  <a class="blueBtn" href="javascript:void(0);" onclick="__topSubmit()">确定</a>
+  <a class="grayBtn" href="javascript:void(0);" onclick="__topCancel()">取消</a>
+</div>
+<div id="out">WAITING</div>
+<script>
+  window.__topSubmitted = 0;
+  window.__topCancelled = 0;
+  window.__ret = null;
+  window.__showConfirm = function () { document.getElementById('confirmWin').style.display = 'block'; };
+  function __topSubmit() { window.__topSubmitted += 1; document.getElementById('confirmWin').style.display = 'none'; }
+  function __topCancel() { window.__topCancelled += 1; document.getElementById('confirmWin').style.display = 'none'; }
+
+  var iv = setInterval(function () {
+    if (!window.__ret) return;
+    clearInterval(iv);
+    var r = window.__ret;
+    var pass = r.ok === true && window.__topSubmitted === 1 && window.__topCancelled === 0 && r.dialogFrame === 'top';
+    document.getElementById('out').textContent = (pass ? 'PASS ' : 'FAIL ') + JSON.stringify({ topSubmitted: window.__topSubmitted, topCancelled: window.__topCancelled, ret: r });
+    document.title = pass ? 'PASS' : 'FAIL';
+  }, 300);
+  // 8 秒没有结果就判失败,避免一直 WAITING
+  setTimeout(function () {
+    if (window.__ret) return;
+    document.getElementById('out').textContent = 'FAIL timeout ret=' + JSON.stringify(window.__ret);
+    document.title = 'FAIL';
+  }, 12000);
+</script>
+</body></html>

@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>iframe next test</title>
+<iframe id="iframe" style="width:400px;height:120px" srcdoc="<button id='prevNextFocusNext' style='width:120px;height:40px' onclick='parent.__clicked++'>下一节</button>"></iframe>
+<script>
+  window.__clicked = 0;
+  window.chrome = {
+    runtime: {
+      sendMessage: (msg, cb) => {
+        const r = msg && msg.type === 'GET_SETTINGS'
+          ? { ok: true, settings: { autoJump: true, autoAnswer: true, autoSubmit: true, autoVideo: false, playbackRate: 2 } }
+          : { ok: true };
+        if (cb) { setTimeout(() => cb(r), 5); return; }
+        return Promise.resolve(r);
+      },
+      onMessage: { addListener: () => {} }
+    },
+    storage: { local: { get: (k, cb) => cb && cb({}), set: (v, cb) => cb && cb() } }
+  };
+</script>
+<script src="/extension/engine.js"></script>
+<script>
+  const timer = setInterval(() => {
+    try {
+      if (typeof SXK === 'undefined') return;
+      clearInterval(timer);
+      SXK.loadSettings().then(() => {
+        const ok = SXK.chaoxingJumpNext();
+        document.title = 'ok=' + ok + ' clicked=' + window.__clicked;
+      });
+    } catch (e) { document.title = 'ERR ' + e.message; }
+  }, 100);
+</script>

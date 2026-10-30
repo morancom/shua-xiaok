@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>zhs5 xframe top</title>
+<style>
+  body { font-family: -apple-system, "Microsoft YaHei", sans-serif; margin: 0; padding: 14px; background: #0f1420; color: #e6edf7; }
+  #out { font: 13px/1.6 ui-monospace, Consolas, monospace; white-space: pre-wrap; background: #161b26; padding: 12px; border-radius: 8px; }
+  .next-btn { display: inline-block; padding: 8px 18px; background: #2b7cff; color: #fff; border-radius: 6px; cursor: pointer; }
+</style>
+</head>
+<body>
+<p>顶层没有播放器,播放器在<b>跨域</b> iframe(localhost ↔ 127.0.0.1)里:
+  <span class="next-btn" id="next">下一集</span></p>
+<iframe id="f1" src="http://localhost:3011/tools/mock-zhs5-xif.html" style="width:520px;height:220px;border:1px solid #2a3346"></iframe>
+<div id="out">init</div>
+
+<script>
+  window.__nextClicks = 0;
+  window.__logs = [];
+  document.getElementById('next').addEventListener('click', () => { window.__nextClicks += 1; });
+
+  function handle(msg) {
+    if (!msg || !msg.type) return { ok: true };
+    if (msg.type === 'GET_SETTINGS') return { ok: true, settings: { autoVideo: true, playbackRate: 2, autoJump: true, autoAnswer: true, autoSubmit: false } };
+    if (msg.type === 'BRUSH_REPORT') { window.__logs.push({ task: msg.task, status: msg.status }); return { ok: true }; }
+    return { ok: true };
+  }
+  window.chrome = {
+    runtime: { sendMessage: (m) => Promise.resolve(handle(m)), onMessage: { addListener() {} } },
+    storage: { local: { get: () => Promise.resolve({}), set: () => Promise.resolve() } },
+  };
+
+  let passed = false;
+  setInterval(() => {
+    const ok = window.__nextClicks >= 1;
+    if (ok && !passed) { passed = true; document.title = 'ZHS5-XFRAME-PASS'; }
+    document.getElementById('out').textContent = [
+      `verdict=${ok ? 'PASS' : 'WAIT'} nextClicks=${window.__nextClicks}`,
+      '--- top logs ---',
+      window.__logs.map((m) => `[${m.task}] ${m.status}`).join('\n').slice(-1200),
+    ].join('\n');
+  }, 500);
+</script>
+<script src="/extension/engine.js"></script>
+<script src="/extension/brush-zhs5.js"></script>
+</body>
+</html>

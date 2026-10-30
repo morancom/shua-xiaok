@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>新版学习页导航 mock</title>
+<style>
+  body{font:14px/1.6 system-ui,Segoe UI,sans-serif;margin:0;background:#f6f7fb;color:#222}
+  .wrap{display:flex;min-height:100vh}
+  .catalog{width:300px;background:#fff;border-right:1px solid #e5e7eb;padding:12px}
+  .posCatalog_select{padding:8px 10px;border-radius:6px;cursor:pointer;margin:2px 0}
+  .posCatalog_select:hover{background:#f0f4ff}
+  .posCatalog_select.active{background:#e8f0ff;color:#1a56db;font-weight:600}
+  .main{flex:1;padding:18px}
+  .tabs{display:flex;gap:8px;list-style:none;padding:0;margin:0 0 16px}
+  .tabs li{padding:8px 18px;border-radius:999px;background:#eef2ff;cursor:pointer}
+  .tabs li.active{background:#3b6cf6;color:#fff}
+  #prevNextFocus{margin:16px 0}
+  #prevNextFocusNext{padding:8px 18px}
+  #iframe{width:100%;height:220px;border:1px dashed #bbb;background:#fff}
+  #out{white-space:pre-wrap;background:#0f172a;color:#d1fae5;padding:12px;border-radius:8px;margin-top:16px;font-family:Consolas,monospace}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="catalog" id="catalog">
+    <div class="posCatalog_select" data-cid="1"><span class="posCatalog_name">1.1.1 命题符号化及联结词</span></div>
+    <div class="posCatalog_select active" data-cid="2"><span class="posCatalog_name">1.1.2 命题公式及分类</span></div>
+    <div class="posCatalog_select" data-cid="3"><span class="posCatalog_name">1.1.3 章节测验1</span></div>
+    <div class="posCatalog_select" data-cid="4"><span class="posCatalog_name">1.1.4 等值演算</span></div>
+  </div>
+  <div class="main">
+    <ul class="tabs">
+      <li id="dct1" class="c1">1 PPT</li>
+      <li id="dct2" class="c2 active">2 教材</li>
+      <li id="dct3" class="c3">3 视频</li>
+    </ul>
+    <div id="prevNextFocus"><button id="prevNextFocusNext">下一节</button></div>
+    <iframe id="iframe" srcdoc="<body>task frame</body>"></iframe>
+    <div id="out">testing…</div>
+  </div>
+</div>
+<script>
+  // ---- chrome / SXK stubs, so extension/cx.js can run on a plain page ----
+  window.__sent = [];
+  window.chrome = {
+    runtime: {
+      sendMessage(msg, cb) { window.__sent.push(msg); if (cb) cb({ ok: true }); },
+      getManifest() { return { version: 'mock' }; }
+    },
+    storage: { local: { get(cb) { cb({}); }, remove() {} } }
+  };
+  window.SXK = {
+    autoAnswer: true, autoJump: true, autoVideo: true, playbackRate: 1,
+    getSettings() { return { autoJump: true, autoVideo: true, autoAnswer: true, playbackRate: 1 }; },
+    log() {}
+  };
+
+  // ---- platform simulation ----
+  const tabs = () => [...document.querySelectorAll('#dct1,#dct2,#dct3')];
+  const cats = () => [...document.querySelectorAll('.posCatalog_select')];
+  window.__tabClicks = 0;
+  window.__catalogClicks = 0;
+  window.__nextClicks = 0;
+
+  function activateTab(id) {
+    tabs().forEach((t) => t.classList.toggle('active', t.id === id));
+  }
+  function activateCat(cid) {
+    cats().forEach((c) => c.classList.toggle('active', c.dataset.cid === String(cid)));
+  }
+
+  tabs().forEach((t) => t.addEventListener('click', () => {
+    window.__tabClicks += 1;
+    activateTab(t.id);
+  }));
+
+  cats().forEach((c) => c.addEventListener('click', () => {
+    window.__catalogClicks += 1;
+    activateCat(c.dataset.cid);
+    const u = new URL(location.href);
+    u.searchParams.set('chapterId', c.dataset.cid);
+    history.pushState({}, '', u);
+    // 真机会重新加载 #iframe;这里只换一下内容
+    document.getElementById('iframe').srcdoc = '<body>chapter ' + c.dataset.cid + '</body>';
+  }));
+
+  document.getElementById('prevNextFocusNext').addEventListener('click', () => {
+    window.__nextClicks += 1;
+    const cur = tabs().find((t) => t.classList.contains('active'));
+    const i = tabs().indexOf(cur);
+    if (i >= 0 && i < tabs().length - 1) activateTab(tabs()[i + 1].id);
+  });
+</script>
+<script src="../extension/cx.js"></script>
+<script>
+  const out = document.getElementById('out');
+  const lines = [];
+  const say = (s) => { lines.push(s); out.textContent = lines.join('\n'); };
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // jumpNext 有 25s 跳节间隔;用可推进的假时钟绕开等待
+  let fakeNow = Date.now();
+  const realNow = Date.now;
+  Date.now = () => fakeNow;
+  const advance = (ms) => { fakeNow += ms; };
+
+  async function run() {
+    const CX = window.SXKCX;
+    if (!CX) { say('FAIL: SXKCX 未加载'); return; }
+    say('loaded version=' + (CX.dumpLog().match(/版本: ([^\s]+)/) || [])[1]);
+
+    // 1) 当前标签 2/3(教材) → 应切到 3/3(视频)
+    advance(30000);
+    const r1 = CX.jumpNext(false, 'test-tab');
+    await sleep(300);
+    const a1 = tabs().find((t) => t.classList.contains('active'));
+    say(`TEST1 tab-next ret=${r1} clicks=${window.__tabClicks} active=${a1 && a1.id} ${a1 && a1.id === 'dct3' ? 'PASS' : 'FAIL'}`);
+    await sleep(1600);
+
+    // 2) 当前已是最后一个标签(视频) → 应点目录下一节 1.1.3
+    advance(30000);
+    const r2 = CX.jumpNext(false, 'test-catalog');
+    await sleep(300);
+    const activeCat = cats().find((c) => c.classList.contains('active'));
+    say(`TEST2 catalog-next ret=${r2} clicks=${window.__catalogClicks} cid=${new URL(location.href).searchParams.get('chapterId')} active=${activeCat && activeCat.dataset.cid} ${activeCat && activeCat.dataset.cid === '3' ? 'PASS' : 'FAIL'}`);
+
+    // 3) dumpLog 应带任务标签/目录两行
+    const dl = CX.dumpLog();
+    say(`TEST3 diag tabs=${/任务标签:.*0:1 PPT/.test(dl) ? 'PASS' : 'FAIL'} catalog=${/目录: 当前=.*下一=.*共4/.test(dl) ? 'PASS' : 'FAIL'}`);
+
+    // 4) 去掉标签,回到旧逻辑:只点 #prevNextFocusNext
+    document.querySelector('.tabs').remove();
+    advance(30000);
+    const beforeNext = window.__nextClicks;
+    const r4 = CX.jumpNext(false, 'test-legacy');
+    say(`TEST4 legacy ret=${r4} clickDelta=${window.__nextClicks - beforeNext} ${window.__nextClicks > beforeNext ? 'PASS' : 'FAIL'}`);
+
+    Date.now = realNow;
+    say('DONE');
+  }
+  setTimeout(run, 100);
+</script>
+</body>
+</html>

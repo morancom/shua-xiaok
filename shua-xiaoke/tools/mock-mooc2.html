@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>刷小课 · 新版 mooc2 作业页 DOM 回归测试</title>
+<style>
+  body { font: 14px/1.7 "Microsoft YaHei", sans-serif; padding: 16px; }
+  .fanyaMarking_left { max-width: 900px; }
+  .TiMu { border-top: 1px solid #eee; padding: 12px 0; }
+  .mark_name { margin-bottom: 8px; }
+  .answerBg { display: flex; align-items: center; gap: 10px; padding: 6px 2px; cursor: pointer; }
+  .num_option, .num_option_dx { display: inline-flex; width: 26px; height: 26px; border: 1px solid #ccc; border-radius: 50%; align-items: center; justify-content: center; color: #666; }
+  .num_option.check_answer, .num_option_dx.check_answer_dx { border-color: #3b82f6; color: #fff; background: #3b82f6; }
+  #out { white-space: pre-wrap; background: #f6f8fa; border: 1px solid #ddd; padding: 10px; }
+  .pass { color: #137333; }
+  .fail { color: #b00020; font-weight: bold; }
+</style>
+</head>
+<body>
+<h3>新版 mooc2 作业页 DOM 回归测试</h3>
+
+<div class="fanyaMarking_left" id="paper">
+  <div class="TiMu">
+    <div class="questionLi singleQuesId" data-questionid="111" typename="判断题">
+      <div class="mark_name">1. (判断题) 在一阶合式公式中,同一个个体变元,不能既是约束变元又是自由变元。()</div>
+      <div class="stem_answer">
+        <div class="clearfix answerBg workTextWrap" onclick="addChoice(this)" role="radio" qid="111" qtype="0">
+          <span class="choice111 num_option fl" data="A">A</span>
+          <div class="fl answer_p">对</div>
+        </div>
+        <div class="clearfix answerBg workTextWrap" onclick="addChoice(this)" role="radio" qid="111" qtype="0">
+          <span class="choice111 num_option fl" data="B">B</span>
+          <div class="fl answer_p">错</div>
+        </div>
+      </div>
+      <input type="hidden" id="answer111" name="answer111" value="">
+    </div>
+  </div>
+
+  <div class="TiMu">
+    <div class="questionLi singleQuesId" data-questionid="222" typename="单选题">
+      <div class="mark_name">2. (单选题) 选项内部值与显示字母不同,验证 data 映射。</div>
+      <div class="stem_answer">
+        <div class="clearfix answerBg workTextWrap" onclick="addChoice(this)" role="radio" qid="222" qtype="0">
+          <span class="choice222 num_option fl" data="8">A</span>
+          <div class="fl answer_p">甲</div>
+        </div>
+        <div class="clearfix answerBg workTextWrap" onclick="addChoice(this)" role="radio" qid="222" qtype="0">
+          <span class="choice222 num_option fl" data="2">B</span>
+          <div class="fl answer_p">乙</div>
+        </div>
+        <div class="clearfix answerBg workTextWrap" onclick="addChoice(this)" role="radio" qid="222" qtype="0">
+          <span class="choice222 num_option fl" data="3">C</span>
+          <div class="fl answer_p">丙</div>
+        </div>
+        <div class="clearfix answerBg workTextWrap" onclick="addChoice(this)" role="radio" qid="222" qtype="0">
+          <span class="choice222 num_option fl" data="4">D</span>
+          <div class="fl answer_p">丁</div>
+        </div>
+      </div>
+      <input type="hidden" id="answer222" name="answer222" value="">
+    </div>
+  </div>
+
+  <div class="TiMu">
+    <div class="questionLi singleQuesId" data-questionid="333" typename="多选题">
+      <div class="mark_name">3. (多选题) 多选题:选中 A 与 C。</div>
+      <div class="stem_answer">
+        <div class="clearfix answerBg workTextWrap" onclick="addMultipleChoice(this)" role="checkbox" qid="333" qtype="1">
+          <span class="choice333 num_option_dx fl" data="1">A</span>
+          <div class="fl answer_p">甲</div>
+        </div>
+        <div class="clearfix answerBg workTextWrap" onclick="addMultipleChoice(this)" role="checkbox" qid="333" qtype="1">
+          <span class="choice333 num_option_dx fl" data="2">B</span>
+          <div class="fl answer_p">乙</div>
+        </div>
+        <div class="clearfix answerBg workTextWrap" onclick="addMultipleChoice(this)" role="checkbox" qid="333" qtype="1">
+          <span class="choice333 num_option_dx fl" data="3">C</span>
+          <div class="fl answer_p">丙</div>
+        </div>
+        <div class="clearfix answerBg workTextWrap" onclick="addMultipleChoice(this)" role="checkbox" qid="333" qtype="1">
+          <span class="choice333 num_option_dx fl" data="4">D</span>
+          <div class="fl answer_p">丁</div>
+        </div>
+      </div>
+      <input type="hidden" id="answer333" name="answer333" value="">
+    </div>
+  </div>
+
+  <div class="TiMu">
+    <div class="Zy_TItle">4. (单选题) 旧版皮肤不能回归损坏。</div>
+    <ul class="Zy_ulTop">
+      <li><label><input type="radio" name="oldq" value="A"> A. 选项甲</label></li>
+      <li><label><input type="radio" name="oldq" value="B"> B. 选项乙</label></li>
+      <li><label><input type="radio" name="oldq" value="C"> C. 选项丙</label></li>
+    </ul>
+  </div>
+</div>
+
+<pre id="out">running...</pre>
+
+<script>
+// 模拟扩展 runtime,engine.js 只用到 sendMessage;storage 兜底给空实现
+window.chrome = {
+  runtime: {
+    sendMessage: function (msg) {
+      if (msg && msg.type === 'GET_SETTINGS') return Promise.resolve({ settings: { autoAnswer: true } });
+      return Promise.resolve({});
+    },
+    onMessage: { addListener: function () {} }
+  },
+  storage: { local: { get: function () { return Promise.resolve({}); }, set: function () { return Promise.resolve(); } } }
+};
+
+// 平台自己的选项处理器:只改自己的状态(类名/aria/隐藏字段),和真机行为一致。
+// 隐藏字段故意延迟 120ms 写入,用来验证引擎会等待异步状态。
+function addChoice(row) {
+  var q = row.closest('.questionLi');
+  q.querySelectorAll('.answerBg').forEach(function (r) {
+    var m = r.querySelector('.num_option');
+    if (!m) return;
+    m.classList.remove('check_answer');
+    r.setAttribute('aria-checked', 'false');
+  });
+  var marker = row.querySelector('.num_option');
+  marker.classList.add('check_answer');
+  row.setAttribute('aria-checked', 'true');
+  var saved = q.querySelector('input[type=hidden]');
+  if (saved) setTimeout(function () { saved.value = marker.getAttribute('data') || ''; }, 120);
+}
+
+function addMultipleChoice(row) {
+  var q = row.closest('.questionLi');
+  var marker = row.querySelector('.num_option_dx');
+  var on = marker.classList.toggle('check_answer_dx');
+  row.setAttribute('aria-checked', on ? 'true' : 'false');
+  var saved = q.querySelector('input[type=hidden]');
+  if (saved) setTimeout(function () {
+    saved.value = [].slice.call(q.querySelectorAll('.answerBg')).filter(function (r) {
+      return !!r.querySelector('.num_option_dx.check_answer_dx');
+    }).map(function (r) {
+      return r.querySelector('.num_option_dx').getAttribute('data');
+    }).join('');
+  }, 120);
+}
+</script>
+<script src="../extension/engine.js"></script>
+<script>
+(async function () {
+  var out = [];
+  function ok(name, cond, extra) {
+    out.push((cond ? 'PASS ' : 'FAIL ') + name + (extra ? ' :: ' + extra : ''));
+  }
+  try {
+    await window.__SXK.loadSettings();
+    var qs = window.__SXK.extractQuestions();
+    ok('识别题数=4', qs.length === 4, JSON.stringify(qs.map(function (q) {
+      return [q.mooc2 && q.mooc2.qid, q.stemText.slice(0, 26), q.options.join('|')];
+    })));
+    var q1 = qs.filter(function (q) { return q.mooc2 && q.mooc2.qid === '111'; })[0];
+    var q2 = qs.filter(function (q) { return q.mooc2 && q.mooc2.qid === '222'; })[0];
+    var q3 = qs.filter(function (q) { return q.mooc2 && q.mooc2.qid === '333'; })[0];
+    var q4 = qs.filter(function (q) { return !q.mooc2 && /旧版皮肤/.test(q.stemText); })[0];
+    ok('q1 存在', !!q1);
+    ok('q2 存在', !!q2);
+    ok('q3 存在', !!q3);
+    ok('q4 存在', !!q4);
+    if (q1) {
+      ok('q1 题干不含选项文字', !/对|错/.test(q1.stemText), JSON.stringify(q1.stemText));
+      ok('q1 选项=对|错', q1.options.join('|') === '对|错', JSON.stringify(q1.options));
+      var r1 = await window.__SXK.applyAnswer(q1, 'B');
+      var st1 = window.__SXK.mooc2State(q1.el);
+      ok('q1 选 B 成功', r1.ok && st1.keys.join('') === 'B', JSON.stringify(r1));
+      ok('q1 隐藏字段=B', st1.saved === 'B', JSON.stringify(st1.saved));
+      var r1b = await window.__SXK.applyAnswer(q1, 'A');
+      var st1b = window.__SXK.mooc2State(q1.el);
+      ok('q1 单选可切换回 A', r1b.ok && st1b.keys.join('') === 'A' && st1b.saved === 'A', JSON.stringify(r1b));
+    }
+    if (q2) {
+      ok('q2 选项字母 ABCD', q2.opts.map(function (o) { return o.letter; }).join('') === 'ABCD', JSON.stringify(q2.opts.map(function (o) { return [o.letter, o.data, o.text]; })));
+      var r2 = await window.__SXK.applyAnswer(q2, 'C');
+      var st2 = window.__SXK.mooc2State(q2.el);
+      ok('q2 选 C 成功(内部值 3)', r2.ok && st2.keys.join('') === 'C' && st2.saved === '3', JSON.stringify(r2));
+    }
+    if (q3) {
+      var r3 = await window.__SXK.applyAnswer(q3, 'AC');
+      var st3 = window.__SXK.mooc2State(q3.el);
+      ok('q3 多选 AC 成功', r3.ok && st3.keys.slice().sort().join('') === 'AC', JSON.stringify(r3));
+      ok('q3 隐藏字段=1+3', st3.saved === '13', JSON.stringify(st3.saved));
+    }
+    if (q4) {
+      ok('q4 旧版选项识别', q4.opts.length === 3, JSON.stringify(q4.opts.map(function (o) { return [o.letter, o.text]; })));
+      var r4 = await window.__SXK.applyAnswer(q4, 'B');
+      var checked = q4.el.querySelector('input[type=radio]:checked');
+      ok('q4 旧版选 B 成功', r4.ok && checked && checked.value === 'B', JSON.stringify(r4));
+    }
+  } catch (e) {
+    out.push('ERROR ' + (e && e.stack || e));
+  }
+  var pre = document.getElementById('out');
+  pre.textContent = out.join('\n');
+  out.forEach(function (line) {
+    var div = document.createElement('div');
+    div.className = line.indexOf('PASS') === 0 ? 'pass' : 'fail';
+    div.textContent = line;
+    document.body.appendChild(div);
+  });
+})();
+</script>
+</body>
+</html>

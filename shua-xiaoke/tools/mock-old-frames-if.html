@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>old-frames-if</title>
+<style>
+  body{font:14px/1.6 system-ui,"Microsoft YaHei";padding:10px;margin:0}
+  .btnSubmit{display:inline-block;background:#4a8cff;color:#fff;border-radius:16px;padding:6px 28px;text-decoration:none}
+</style></head>
+<body>
+<p>作业模块 iframe:提交按钮在这里,确认框在顶层页面。</p>
+<a class="btnSubmit workBtnIndex" href="javascript:void(0);" role="button" onclick="parent.__showConfirm()"><span title="提交">提交</span></a>
+<script src="/extension/pageSubmit.js"></script>
+<script>
+  (async function () {
+    try {
+      parent.__ret = await pageSubmit();
+    } catch (e) {
+      parent.__ret = { ok: false, why: 'frame-error:' + e.message, dialogFrame: '' };
+    }
+  })();
+</script>
+</body></html>

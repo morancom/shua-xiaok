@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>自动提交 mock</title>
+<style>
+  body { font: 16px/1.6 sans-serif; padding: 24px; }
+  .q { margin: 16px 0; }
+  #finalSubmit { position: fixed; right: 32px; bottom: 28px; padding: 10px 28px; }
+</style>
+<div class="q" id="q1">
+  <b>1. 单选题</b>
+  <label><input type="radio" name="q1" value="A"> A</label>
+  <label><input type="radio" name="q1" value="B" checked> B</label>
+</div>
+<div class="q" id="q2">
+  <b>2. 判断题</b>
+  <label><input type="radio" name="q2" value="A" checked> 对</label>
+  <label><input type="radio" name="q2" value="B"> 错</label>
+</div>
+<button id="finalSubmit">提交</button>
+<script>
+  window.onSubmit = function () {
+    if (window.confirm('确定提交吗？')) {
+      document.body.dataset.submitted = '1';
+    } else {
+      document.body.dataset.submitted = 'cancelled';
+    }
+  };
+  document.getElementById('finalSubmit').addEventListener('click', window.onSubmit);
+</script>
