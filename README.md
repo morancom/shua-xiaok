@@ -1,4 +1,4 @@
-# answertole —— 大学搜题酱逆向 & 刷小课
+# answertole ——  刷小课
 
 本仓库包含两个相互独立的项目：
 
@@ -28,18 +28,6 @@ answertole/
 3. 打开控制台：http://127.0.0.1:3001/ui
 
 详见 [shua-xiaoke/README.md](shua-xiaoke/README.md)。
-
-## 逆向资料
-
-入口：[reverse/README.md](reverse/README.md) —— 总报告、六册分卷、API 全表都在那里索引。
-
-## 上传 GitHub 前注意
-
-- `.gitignore` 已排除：浏览器配置（含登录态）、后端运行数据（含 API key）、第三方解包源码、打包产物。
-- `shua-xiaoke/server/server.js` 顶部默认值与 `server/data.json` 里有**明文 API key**，公开仓库前请清空。
-- 第三方解包代码（`reverse/ext-*`）有版权与体积问题，默认不入库；需要时可从商店 CRX 自行解包并用 `reverse/tools/` 重新生成。
-
-## 历史文档
 
 - 交接记忆：[HANDOFF.md](HANDOFF.md)（版本基线为历史快照，当前版本以 `shua-xiaoke/extension/manifest.json` 为准）
 - 版本变更：[shua-xiaoke/CHANGELOG.md](shua-xiaoke/CHANGELOG.md)
