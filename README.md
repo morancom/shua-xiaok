@@ -18,15 +18,7 @@ answertole/
 │  ├─ docs/memory/     逐版本开发记忆（含每版根因分析）
 │  ├─ CHANGELOG.md     逐版本变更记录
 │  └─ *.bat            Windows 一键启动脚本（GBK 编码）
-├─ reverse/            项目 A：大学搜题酱逆向资料
-│  ├─ analysis/        中文逆向报告 + API 清单 + 模块清单
-│  ├─ tools/           逆向工具（美化 / 模块切分 / 字符串提取，可重跑）
-│  ├─ selfhost/        假后端：零依赖 Node，一个端口扮演原插件 3 个域
-│  ├─ reference/       参考资料（DOM 契约、测试夹具）
-│  └─ (ext-* 等)       第三方解包源码，默认不入库，见 reverse/README.md
-├─ HANDOFF.md          项目交接记忆（接手必读）
-└─ README.md           本文件
-```
+
 
 ## 快速开始（刷小课）
 
